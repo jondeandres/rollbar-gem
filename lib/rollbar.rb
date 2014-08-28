@@ -374,7 +374,11 @@ module Rollbar
     end
 
     def send_payload_using_eventmachine(payload)
-      req = EventMachine::HttpRequest.new(configuration.endpoint).post(:body => payload)
+      body = dump_payload(payload)
+      headers = { 'X-Rollbar-Access-Token' => payload[:access_token] }
+      req = EventMachine::HttpRequest.new(configuration.endpoint)
+        .post(:body => body, :head => headers)
+
       req.callback do
         if req.response_header.status == 200
           log_info '[Rollbar] Success'
@@ -396,6 +400,8 @@ module Rollbar
         send_payload_using_eventmachine(payload)
         return
       end
+
+      body = dump_payload(payload)
       uri = URI.parse(configuration.endpoint)
       http = Net::HTTP.new(uri.host, uri.port)
       http.read_timeout = configuration.request_timeout
@@ -406,8 +412,8 @@ module Rollbar
       end
 
       request = Net::HTTP::Post.new(uri.request_uri)
-      request.body = payload
-      request.add_field('X-Rollbar-Access-Token', configuration.access_token)
+      request.body = body
+      request.add_field('X-Rollbar-Access-Token', payload[:access_token])
       response = http.request(request)
 
       if response.code == '200'
@@ -447,9 +453,12 @@ module Rollbar
         :access_token => configuration.access_token,
         :data => data
       }
-      
+
       enforce_valid_utf8(payload)
-      
+      payload
+    end
+
+    def dump_payload(payload)
       result = MultiJson.dump(payload)
 
       # Try to truncate strings in the payload a few times if the payload is too big
@@ -608,7 +617,7 @@ module Rollbar
         log_error "[Rollbar] Error sending failsafe : #{e}"
       end
     end
-    
+
     def enforce_valid_utf8(payload)
       normalizer = Proc.new do |value|
         if value.is_a?(String)
