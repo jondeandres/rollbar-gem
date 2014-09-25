@@ -2,7 +2,11 @@ module Rollbar
   module ExceptionReporter
     include RequestDataExtractor
 
-    protected
+    def self.included(base)
+      base.class_eval do
+        private :report_exception_to_rollbar
+      end
+    end
 
     def report_exception_to_rollbar(env, exception)
       Rollbar.log_error "Reporting exception: #{exception.message}"
