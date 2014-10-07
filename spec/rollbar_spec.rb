@@ -1591,12 +1591,15 @@ describe Rollbar do
     end
 
     it 'changes payload options inside the block' do
-      current_notifier = Rollbar.notifier
+      Rollbar.reset_notifier!
+      configure
+
+      current_notifier_id = Rollbar.notifier.object_id
 
       Rollbar.scoped(scope_options) do
         configuration = Rollbar.notifier.configuration
 
-        expect(Rollbar.notifier).not_to be_eql(current_notifier)
+        expect(Rollbar.notifier.object_id).not_to be_eql(current_notifier_id)
         STDOUT.write(<<-EOF)
 #{configuration.payload_options}
 #{scope_options}
@@ -1604,7 +1607,7 @@ EOF
         expect(configuration.payload_options).to be_eql(scope_options)
       end
 
-      expect(Rollbar.notifier).to be_eql(current_notifier)
+      expect(Rollbar.notifier.object_id).to be_eql(current_notifier_id)
     end
   end
 
