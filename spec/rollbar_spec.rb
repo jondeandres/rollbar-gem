@@ -1597,6 +1597,10 @@ describe Rollbar do
         configuration = Rollbar.notifier.configuration
 
         expect(Rollbar.notifier).not_to be_eql(current_notifier)
+        STDOUT.write(<<-EOF)
+#{configuration.payload_options}
+#{scope_options}
+EOF
         expect(configuration.payload_options).to be_eql(scope_options)
       end
 
